@@ -1,0 +1,30 @@
+name: decode-b64
+on:
+  push:
+    paths: ['b64/**']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: decode
+  cancel-in-progress: false
+jobs:
+  decode:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Decode b64 files to binary
+        run: |
+          set -e
+          find b64 -name '*.b64' | while read f; do
+            out="${f#b64/}"; out="${out%.b64}"
+            mkdir -p "$(dirname "$out")"
+            base64 -d "$f" > "$out"
+            git rm -q "$f"
+            git add "$out"
+          done
+          git config user.name "remi-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git diff --cached --quiet || git commit -m "Decode slide images" && git push
